@@ -1,0 +1,47 @@
+env_on_up() {
+  local env_file="$SCS_EXTENSION_CONFIG"
+  while read -r env; do
+    export "$env"
+  done < "$env_file"
+  return 0
+}
+
+env_on_down() {
+  local env_file="$SCS_EXTENSION_CONFIG"
+  while read -r env; do
+    unset "${env%%=*}"
+  done < "$env_file"
+  return 0
+}
+
+env_on_show() {
+  echo "Env - Bundled Extension:"
+  local env_file="$SCS_EXTENSION_CONFIG"
+  local -a found_env=()
+  local env_name
+  local current_value
+
+  while IFS='=' read -r env_name _; do
+    if current_value=$(printenv "$env_name" 2>/dev/null); then
+      found_env+=("$env_name=$current_value")
+    fi
+  done < "$env_file"
+
+  if (( ${#found_env[@]} == 0 )); then
+    echo "No configured environment variables found in the current environment. Please reload the current profile."
+  else
+    echo "Current environment variables for selected profile:"
+    printf '%s\n' "${found_env[@]}"
+  fi
+  return 0
+}
+
+env_on_help() {
+  echo "This extension is used to configure environment variables for your currently-selected profile"
+  echo "Simply create a file called 'env' in your profiles/<profile> directory with the environment variables you wish you use."
+  echo "The syntax is the same as you'd use in your shell's .rc file"
+  echo
+  echo "Here's an example:"
+  echo "NODE_PATH='/some/node/dir'"
+  echo "GIT_AUTHOR_NAME='somename'"
+}

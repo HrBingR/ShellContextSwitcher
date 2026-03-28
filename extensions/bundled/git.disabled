@@ -1,0 +1,175 @@
+git_ext_state_directory="$SCS_STATE_DIR/git"
+if [[ ! -d "$git_ext_state_directory" ]]; then
+  mkdir -p "$git_ext_state_directory"
+fi
+git_on_up() {
+  local git_config="$SCS_EXTENSION_CONFIG"
+  if [ ! -s "$git_ext_state_directory/original_name" ]; then
+    git config --global user.name > "$git_ext_state_directory/original_name"
+  fi
+  if [ ! -s "$git_ext_state_directory/original_email" ]; then
+    git config --global user.email > "$git_ext_state_directory/original_email"
+  fi
+  local new_git_name="$(grep '^name=' "$git_config" | cut -d'=' -f2- | sed "s/[\`\$]//g")"
+  local new_git_email="$(grep '^email=' "$git_config" | cut -d'=' -f2- | sed "s/[\`\$]//g")"
+  git config --global user.name "$new_git_name"
+  git config --global user.email "$new_git_email"
+  git config --global user.name > "$git_ext_state_directory/last_used_name"
+  git config --global user.email > "$git_ext_state_directory/last_used_email"
+  return 0
+}
+
+git_on_down() {
+  local condition
+  local type
+  local git_config="$SCS_EXTENSION_CONFIG"
+  local current_git_name=$(git config --global user.name)
+  local last_used_name=$(<"$git_ext_state_directory/last_used_name")
+  local current_git_email=$(git config --global user.email)
+  local last_used_email=$(<"$git_ext_state_directory/last_used_email")
+
+  if ! check_git_state "$current_git_name" "$last_used_name" "name"; then
+    condition="name"
+    type="user.name"
+  fi
+  if ! check_git_state "$current_git_email" "$last_used_email" "email"; then
+    if [ "$condition" == "name" ]; then
+      condition="both"
+      type="user.name or user.email"
+    else
+      condition="email"
+      type="user.email"
+    fi
+  fi
+  if [ -z "$condition" ]; then
+    return 0
+  fi
+
+  set_prompt_options "$condition"
+
+  echo "External changes to the global git config have been detected"
+  echo "shell-context-switcher is unable to revert $type git configuration"
+  echo "Please choose one of the following options to resolve this manually:"
+  echo
+  PS3="Please select an option: "
+  select option in "${prompt_options[@]}"; do
+    case "$option" in
+    Unset*)
+      unset_current_git
+      return 0
+      ;;
+    Switch*)
+      git config --global user.name "$last_used_name"
+      git config --global user.email "$last_used_email"
+      return 0
+      ;;
+    "Do not"*)
+      return 0
+      ;;
+    *"new default")
+      git config --global user.name > "$git_ext_state_directory/original_name"
+      git config --global user.email > "$git_ext_state_directory/original_email"
+      return 0
+    esac
+  done
+}
+
+git_on_show() {
+  local git_config="$SCS_EXTENSION_CONFIG"
+  local configured_name configured_email
+  local current_name current_email
+
+  local configured_name=$(grep '^name=' "$git_config" | cut -d'=' -f2-)
+  local configured_email=$(grep '^email=' "$git_config" | cut -d'=' -f2-)
+
+  local current_name=$(git config --global user.name 2>/dev/null)
+  local current_email=$(git config --global user.email 2>/dev/null)
+
+  if [[ "$current_name" == "$configured_name" && "$current_email" == "$configured_email" ]]; then
+    echo "Current global git config:"
+    echo "  user.name:  ${current_name:-<unset>}"
+    echo "  user.email: ${current_email:-<unset>}"
+  else
+    echo "Current global git config does not match the configured profile. Please reload the current profile."
+    echo "Current:"
+    echo "  user.name:  ${current_name:-<unset>}"
+    echo "  user.email: ${current_email:-<unset>}"
+    echo "Configured:"
+    echo "  user.name:  ${configured_name:-<unset>}"
+    echo "  user.email: ${configured_email:-<unset>}"
+  fi
+}
+
+check_git_state() {
+  local current="$1"
+  local last="$2"
+  local property="$3"
+
+  case $property in
+    name)
+      if [ -s "$git_ext_state_directory/original_name" ]; then
+        git config --global user.name "$(<$git_ext_state_directory/original_name)"
+        return 0
+      elif [ "$current" == "$last" ]; then
+        unset_current_git
+        return 0
+      else
+        return 1
+      fi
+      ;;
+    email)
+      if [ -s "$git_ext_state_directory/original_email" ]; then
+        git config --global user.email "$(<$git_ext_state_directory/original_email)"
+        return 0
+      elif [ "$current" == "$last" ]; then
+        unset_current_git
+        return 0
+      else
+        return 1
+      fi
+      ;;
+  esac
+}
+
+unset_current_git() {
+  git config --global --unset user.name
+  git config --global --unset user.email
+}
+
+set_prompt_options() {
+  local condition="$1"
+
+  case "$condition" in
+  name)
+    prompt_options=("Unset global git user.name config" \
+     "Switch to the most recent tracked configuration: (user.name: $last_used_name)" \
+     "Do not make changes, keep current configuration (user.name: $current_git_name)"\
+     "Keep current configuration, set current git user.name ($current_git_name) as new default")
+    ;;
+  email)
+    prompt_options=("Unset global git user.email config" \
+     "Switch to the most recent tracked configuration: (user.email: $last_used_email)" \
+     "Do not make changes, keep current configuration (user.email: $current_git_email)"\
+     "Keep current configuration, set current git user.email ($current_git_email) as new default")
+    ;;
+  both)
+    prompt_options=("Unset global git user.name and user.email config" \
+     "Switch to the most recent tracked configuration: (user.name: $last_used_name, user.email: $last_used_email)" \
+     "Do not make changes, keep current configuration (user.name: $current_git_name, user.email: $current_git_email)"\
+     "Keep current configuration, set current git user.name ($current_git_name) and user.email ($current_git_email) as new default")
+   ;;
+  esac
+}
+
+git_on_help() {
+  echo "This extension is used to configure your global git identity for your currently-selected profile."
+  echo "Simply create a file called 'git' in your profiles/<profile> directory with the name and email you wish to use."
+  echo
+  echo "Here's an example:"
+  echo "name=Jane Smith"
+  echo "email=jane@example.com"
+  echo
+  echo "Note: This extension modifies your global git config (user.name and user.email)."
+  echo "When switching away from a profile, SCS will attempt to restore your previous git config automatically."
+  echo "If external changes to your git config are detected during that process, you will be prompted to resolve them manually."
+}

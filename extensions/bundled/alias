@@ -1,0 +1,41 @@
+alias_on_up() {
+  local alias_file="$SCS_EXTENSION_CONFIG"
+    while read -r alias_arg; do
+    alias "$alias_arg"
+  done < "$alias_file"
+  return 0
+}
+
+alias_on_down() {
+  local alias_file="$SCS_EXTENSION_CONFIG"
+    while read -r alias_arg; do
+    unalias "${alias_arg%%=*}"
+  done < "$alias_file"
+  return 0
+}
+
+alias_on_show() {
+  local alias_file="$SCS_EXTENSION_CONFIG"
+  local -a found_aliases=()
+  local alias_name
+  while IFS='=' read -r alias_name _; do
+    if current_alias=$(alias "$alias_name" 2>/dev/null); then
+      found_aliases+=("$current_alias")
+    fi
+  done < "$alias_file"
+  if (( ${#found_aliases[@]} == 0 )); then
+    echo "No configured aliases found in the current environment. Please reload current profile."
+  else
+    echo "Current aliases for selected profile:"
+    printf '%s\n' "${found_aliases[@]}"
+  fi
+}
+
+alias_on_help() {
+  echo "This extension is used to configure shell aliases for your currently-selected profile."
+  echo "Simply create a file called 'alias' in your profiles/<profile> directory with the aliases you wish you use."
+  echo
+  echo "Note that the 'alias' keyword should not be used in front of your desired aliases. Here's an example of an alias file:"
+  echo "ls='ls -la'"
+  echo "cat='bat'"
+}

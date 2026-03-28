@@ -1,0 +1,43 @@
+k8s_context_on_up() {
+  local context=$(<$SCS_EXTENSION_CONFIG)
+  kubectl config use-context "$context"
+  return 0
+}
+
+k8s_context_on_down() {
+  return 0
+}
+
+k8s_context_on_show() {
+  local config_file="$SCS_EXTENSION_CONFIG"
+  local configured_context current_context
+  local cluster user
+
+  configured_context=$(<"$config_file")
+  current_context=$(kubectl config current-context 2>/dev/null)
+
+  if [[ "$configured_context" == "$current_context" ]]; then
+    cluster=$(kubectl config view -o "jsonpath={.contexts[?(@.name=='${current_context}')].context.cluster}" 2>/dev/null)
+    user=$(kubectl config view -o "jsonpath={.contexts[?(@.name=='${current_context}')].context.user}" 2>/dev/null)
+
+    echo "Current Kubernetes context:"
+    echo "  Context Name: ${current_context}"
+    echo "  Cluster Name: ${cluster:-<unset>}"
+    echo "  User Name: ${user:-<unset>}"
+  else
+    echo "Current Kubernetes context does not match the configured context. Please reload the current profile."
+    echo "Configured context: ${configured_context:-<unset>}"
+    echo "Current context: ${current_context:-<unset>}"
+  fi
+}
+
+k8s_context_on_help() {
+  echo "This extension is used to configure the active Kubernetes context for your currently-selected profile."
+  echo "Simply create a file called 'k8s_context' in your profiles/<profile> directory containing the name of the context you wish to use."
+  echo
+  echo "The file should contain a single line with the context name. Here's an example:"
+  echo "my-dev-cluster"
+  echo
+  echo "The context name must match an existing context in your kubeconfig (~/.kube/config)."
+  echo "You can list available contexts with: kubectl config get-contexts"
+}
