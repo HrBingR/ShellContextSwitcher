@@ -4,6 +4,10 @@ EXTENSIONS_DIR="${CONFIG_DIR}/extensions"
 PROFILES_DIR="${CONFIG_DIR}/profiles"
 INSTALL_DIR="$HOME/.local/bin"
 
+if [[ ! -t 0 ]]; then
+  exec < /dev/tty
+fi
+
 if [ -n "$ZSH_VERSION" ]; then
   readonly current_shell="zsh"
 elif [ -n "$BASH_VERSION" ]; then
