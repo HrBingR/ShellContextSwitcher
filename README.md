@@ -74,7 +74,7 @@ scs -h, --help <extension>       # Show help for a specific extension
     ├── bundled/             # Ships with SCS
     │   ├── alias
     │   ├── env
-    │   ├── git.disabled
+    │   ├── git
     │   └── k8s_context
     ├── custom/              # User-created extensions
     └── state/               # Runtime state used by extensions (e.g. git)
@@ -137,7 +137,7 @@ my-cluster-context
 
 A single line containing the name of a context from your kubeconfig. List available contexts with `kubectl config get-contexts`.
 
-### git (disabled by default)
+### git
 
 Switches the global git `user.name` and `user.email`. When switching away, SCS restores your previous git identity. If an external change to your git config is detected, you are prompted to resolve the conflict.
 
@@ -147,8 +147,6 @@ Switches the global git `user.name` and `user.email`. When switching away, SCS r
 name=Jane Smith
 email=jane@example.com
 ```
-
-To enable: rename `extensions/bundled/git.disabled` to `extensions/bundled/git`.
 
 ## Writing Custom Extensions
 
