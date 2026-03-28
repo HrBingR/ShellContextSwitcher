@@ -23,7 +23,7 @@ SCS is compatible with **Bash** and **Zsh** on **Linux** and **macOS**.
 ### Automated
 
 ```sh
-curl -fsSL <installer-url> | bash
+curl -fsSL https://raw.githubusercontent.com/HrBingR/ShellContextSwitcher/main/installer.sh | bash
 ```
 
 Replace `bash` with `zsh` if that is your shell. After installation, restart your shell or run `source ~/.bashrc` (or `~/.zshrc`).

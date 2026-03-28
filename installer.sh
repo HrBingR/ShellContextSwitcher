@@ -211,7 +211,7 @@ rc_setup() {
 }
 
 download_scs() {
-  local url="https://raw.githubusercontent.com/<user>/<repo>/<branch>/shell_context_switcher.sh"
+  local url="https://raw.githubusercontent.com/HrBingR/ShellContextSwitcher/main/shell_context_switcher.sh"
   local dest="${INSTALL_DIR}/shell_context_switcher.sh"
   if ! curl -fsSL "$url" -o "$dest"; then
     echo "Failed to download shell_context_switcher.sh" >&2
@@ -222,7 +222,7 @@ download_scs() {
 
 download_extension() {
   local name="$1"
-  local url="https://raw.githubusercontent.com/<user>/<repo>/<branch>/extensions/bundled/$name"
+  local url="https://raw.githubusercontent.com/HrBingR/ShellContextSwitcher/main/extensions/bundled/$name"
   local dest="${EXTENSIONS_DIR}/bundled/$name"
   if ! curl -fsSL "$url" -o "$dest"; then
     echo "Failed to download extension: $name" >&2
