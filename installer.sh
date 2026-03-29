@@ -14,7 +14,7 @@ install() {
   echo "Welcome to the shell-context-switcher (SCS) installer."
   echo "Select Continue to install SCS."
   PS3="Please select an option: "
-  select option in "Continue" "Reinstall" "Uninstall" "Exit"; do
+  select option in "Continue" "Reinstall/Update" "Uninstall" "Exit"; do
     case $option in
     Continue)
       if ! step_one; then
@@ -23,7 +23,7 @@ install() {
       fi
       return 0
       ;;
-    Reinstall)
+    Reinstall/Update)
       uninstall "true"
       if ! step_one; then
         echo "Exiting setup..."
@@ -96,12 +96,14 @@ uninstall() {
     echo "Uninstalling SCS..."
     rc_teardown "$shellrc"
   else
-    echo "Reinstalling SCS..."
+    echo "Updating SCS..."
     rc_teardown "$shellrc" "true"
 
   fi
 
-  rm -f "${CONFIG_DIR}/current_context"
+  if [[ -z "$reinstall" ]]; then
+    rm -f "${CONFIG_DIR}/current_context"
+  fi
   rm -f "${INSTALL_DIR}/shell_context_switcher.sh"
   if [[ -z "$reinstall" ]]; then
     rm -f "${CONFIG_DIR}/installer.sh"
