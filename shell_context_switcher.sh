@@ -30,6 +30,7 @@ configure() {
   local init="$4"
   local profile_dir="${PROFILES_DIR}/$profile"
 
+  setopt local_options nullglob 2>/dev/null || shopt -s nullglob
   for extension_file in "$EXTENSIONS_DIR"/bundled/* "$EXTENSIONS_DIR"/custom/*; do
       [ -f "$extension_file" ] || continue
       [[ "$extension_file" == *.disabled ]] && continue
@@ -84,6 +85,7 @@ get_help() {
     echo "  -h, --help <extension>     Show help for a specific extension"
     echo
     echo "Available extensions:"
+    setopt local_options nullglob 2>/dev/null || shopt -s nullglob
     for extension_file in "$EXTENSIONS_DIR"/bundled/* "$EXTENSIONS_DIR"/custom/*; do
       [ -f "$extension_file" ] || continue
       [[ "$extension_file" == *.disabled ]] && continue
