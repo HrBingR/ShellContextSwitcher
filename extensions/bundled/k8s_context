@@ -1,6 +1,92 @@
+k8s_ext_state_dir="$SCS_STATE_DIR/k8s_context"
+if [[ ! -d "$k8s_ext_state_dir" ]]; then
+  mkdir -p "$k8s_ext_state_dir"
+fi
+
+k8s_context_resolve() {
+  local config="$1"
+  local query="$2"
+
+  if grep -q '=' "$config"; then
+    if [[ -z "$query" ]]; then
+      local ctx
+      ctx=$(grep '^default=' "$config" | cut -d'=' -f2-)
+      if [[ -n "$ctx" ]]; then
+        echo "$ctx"
+      else
+        head -1 "$config" | cut -d'=' -f2-
+      fi
+    else
+      grep "^${query}=" "$config" | cut -d'=' -f2-
+    fi
+  else
+    if [[ -z "$query" ]]; then
+      head -1 "$config"
+    else
+      grep "^${query}$" "$config"
+    fi
+  fi
+}
+
+k8s_context_get_active() {
+  local config="$1"
+  local state_file="$2"
+
+  if [[ -f "$state_file" ]] && [[ -s "$state_file" ]]; then
+    cat "$state_file"
+  else
+    k8s_context_resolve "$config" ""
+  fi
+}
+
+k8s_context_list() {
+  local config="$1"
+  local state_file="$2"
+  local active
+
+  active=$(k8s_context_get_active "$config" "$state_file")
+
+  echo "Available contexts:"
+  echo
+
+  if grep -q '=' "$config"; then
+    local key value marker
+    while IFS='=' read -r key value || [[ -n "$key" ]]; do
+      [[ -z "$key" ]] && continue
+      if [[ "$value" == "$active" ]]; then
+        marker=" (active)"
+      else
+        marker=""
+      fi
+      echo "  ${key} = ${value}${marker}"
+    done < "$config"
+  else
+    local ctx marker
+    while read -r ctx || [[ -n "$ctx" ]]; do
+      [[ -z "$ctx" ]] && continue
+      if [[ "$ctx" == "$active" ]]; then
+        marker=" (active)"
+      else
+        marker=""
+      fi
+      echo "  ${ctx}${marker}"
+    done < "$config"
+  fi
+}
+
 k8s_context_on_up() {
-  local context=$(<$SCS_EXTENSION_CONFIG)
-  kubectl config use-context "$context" > /dev/null
+  local config="$SCS_EXTENSION_CONFIG"
+  local state_file="$k8s_ext_state_dir/${SCS_PROFILE}_active"
+  local context
+
+  context=$(k8s_context_get_active "$config" "$state_file")
+
+  if [[ -n "$context" ]]; then
+    kubectl config use-context "$context" > /dev/null
+    if [[ ! -f "$state_file" ]] || [[ ! -s "$state_file" ]]; then
+      echo "$context" > "$state_file"
+    fi
+  fi
   return 0
 }
 
@@ -8,12 +94,36 @@ k8s_context_on_down() {
   return 0
 }
 
+k8s_context_on_command() {
+  local config="$SCS_EXTENSION_CONFIG"
+  local state_file="$k8s_ext_state_dir/${SCS_PROFILE}_active"
+
+  if [[ -z "$1" ]]; then
+    k8s_context_list "$config" "$state_file"
+    return 0
+  fi
+
+  local context
+  context=$(k8s_context_resolve "$config" "$1")
+
+  if [[ -z "$context" ]]; then
+    echo "Context '$1' not found in profile configuration."
+    return 1
+  fi
+
+  echo "$context" > "$state_file"
+  kubectl config use-context "$context" > /dev/null
+  echo "Switched to context: $context"
+  return 0
+}
+
 k8s_context_on_show() {
-  local config_file="$SCS_EXTENSION_CONFIG"
+  local config="$SCS_EXTENSION_CONFIG"
+  local state_file="$k8s_ext_state_dir/${SCS_PROFILE}_active"
   local configured_context current_context
   local cluster user
 
-  configured_context=$(<"$config_file")
+  configured_context=$(k8s_context_get_active "$config" "$state_file")
   current_context=$(kubectl config current-context 2>/dev/null)
 
   if [[ "$configured_context" == "$current_context" ]]; then
@@ -24,22 +134,47 @@ k8s_context_on_show() {
     echo "  Context Name: ${current_context}"
     echo "  Cluster Name: ${cluster:-<unset>}"
     echo "  User Name: ${user:-<unset>}"
-    echo
   else
     echo "Current Kubernetes context does not match the configured context. Please reload the current profile."
     echo "Configured context: ${configured_context:-<unset>}"
     echo "Current context: ${current_context:-<unset>}"
-    echo
   fi
+
+  local line_count
+  line_count=$(grep -c '.' "$config" 2>/dev/null || echo 0)
+  if (( line_count > 1 )); then
+    echo
+    k8s_context_list "$config" "$state_file"
+  fi
+  echo
 }
 
 k8s_context_on_help() {
-  echo "This extension is used to configure the active Kubernetes context for your currently-selected profile."
-  echo "Simply create a file called 'k8s_context' in your profiles/<profile> directory containing the name of the context you wish to use."
+  echo "This extension configures the active Kubernetes context for your currently-selected profile."
+  echo "Create a file called 'k8s_context' in your profiles/<profile> directory."
   echo
-  echo "The file should contain a single line with the context name. Here's an example:"
-  echo "my-dev-cluster"
+  echo "Single context:"
+  echo "  my-dev-cluster"
   echo
-  echo "The context name must match an existing context in your kubeconfig (~/.kube/config)."
-  echo "You can list available contexts with: kubectl config get-contexts"
+  echo "Multiple contexts (one per line):"
+  echo "  my-dev-cluster"
+  echo "  my-staging-cluster"
+  echo "  my-prod-cluster"
+  echo
+  echo "Multiple contexts (named format):"
+  echo "  default=my-dev-cluster"
+  echo "  dev=my-dev-cluster"
+  echo "  staging=my-staging-cluster"
+  echo "  prod=my-prod-cluster"
+  echo
+  echo "In named format, the 'default' key is used on initial profile load."
+  echo "In unnamed format, the first line is used as the default."
+  echo "The selected context persists across profile reloads."
+  echo
+  echo "To switch contexts within the current profile:"
+  echo "  scs -e k8s_context <name>    Switch to a context (by key or name)"
+  echo "  scs -e k8s_context           List available contexts"
+  echo
+  echo "Context names must match existing contexts in your kubeconfig (~/.kube/config)."
+  echo "You can list kubeconfig contexts with: kubectl config get-contexts"
 }
