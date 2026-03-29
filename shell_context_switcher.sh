@@ -44,6 +44,7 @@ configure() {
 
       export SCS_EXTENSION_CONFIG="$profile_config"
       export SCS_STATE_DIR="$STATE_DIR"
+      export SCS_PROFILE="$profile"
       source "$extension_file"
 
       case "$action" in
@@ -72,6 +73,7 @@ get_help() {
     echo "  (no option)                Show current profile and its configuration"
     echo "  -s, --switch <profile>     Switch to the specified profile"
     echo "  -r, --reload               Reload the current profile"
+    echo "  -e, --ext <extension>      Run an extension command (see extension help)"
     echo "  -i, --installer            Launch the SCS installer (if installed)"
     echo "  -h, --help                 Show this help message"
     echo "  -h, --help <extension>     Show help for a specific extension"
@@ -188,6 +190,49 @@ reload() {
   return 0
 }
 
+run_extension_command() {
+  local ext_name="$1"
+  shift
+
+  if [[ -z "$current_context" ]]; then
+    echo "No profile set. Switch to a profile first via 'scs -s <profile>'"
+    return 1
+  fi
+
+  if [[ -z "$ext_name" ]]; then
+    echo "No extension specified."
+    echo "Usage: scs -e <extension> [args...]"
+    return 1
+  fi
+
+  local extension_file="${EXTENSIONS_DIR}/bundled/${ext_name}"
+  if [[ ! -f "$extension_file" ]]; then
+    extension_file="${EXTENSIONS_DIR}/custom/${ext_name}"
+  fi
+  if [[ ! -f "$extension_file" ]]; then
+    echo "Extension '$ext_name' not found."
+    return 1
+  fi
+
+  local profile_config="${PROFILES_DIR}/${current_context}/${ext_name}"
+  if [[ ! -f "$profile_config" ]]; then
+    echo "Extension '$ext_name' is not configured for the current profile."
+    return 1
+  fi
+
+  export SCS_EXTENSION_CONFIG="$profile_config"
+  export SCS_STATE_DIR="$STATE_DIR"
+  export SCS_PROFILE="$current_context"
+  source "$extension_file"
+
+  if ! typeset -f "${ext_name}_on_command" > /dev/null 2>&1; then
+    echo "Extension '$ext_name' does not support direct commands."
+    return 1
+  fi
+
+  "${ext_name}_on_command" "$@"
+}
+
 if [[ "$#" -eq 0 ]]; then
   get_context
   return 0
@@ -218,6 +263,9 @@ case "$1" in
         return 1
     fi
     set_context "$2"
+    ;;
+  -e|--ext)
+    run_extension_command "${@:2}"
     ;;
   -r|--reload)
     reload

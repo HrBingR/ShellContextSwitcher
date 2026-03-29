@@ -53,6 +53,7 @@ To reinstall or uninstall after an automated install, run `scs -i` (or `scs --in
 scs                              # Show current profile and its configuration
 scs -s, --switch <profile>       # Switch to a profile
 scs -r, --reload                 # Reload the current profile
+scs -e, --ext <extension> [args] # Run an extension command
 scs -i, --installer              # Launch the SCS installer (if installed)
 scs -h, --help                   # Show general usage and list extensions
 scs -h, --help <extension>       # Show help for a specific extension
@@ -130,15 +131,43 @@ To read a value from a file, prefix the path with `<`. Tilde (`~`) is expanded t
 
 ### k8s_context
 
-Switches the active `kubectl` context when a profile is activated.
+Switches the active `kubectl` context when a profile is activated. Supports multiple contexts per profile.
 
 **Config file:** `profiles/<profile>/k8s_context`
+
+Single context:
 
 ```
 my-cluster-context
 ```
 
-A single line containing the name of a context from your kubeconfig. List available contexts with `kubectl config get-contexts`.
+Multiple contexts (unnamed — use kubeconfig names directly):
+
+```
+my-dev-cluster
+my-staging-cluster
+my-prod-cluster
+```
+
+Multiple contexts (named — use friendly aliases):
+
+```
+default=my-dev-cluster
+dev=my-dev-cluster
+staging=my-staging-cluster
+prod=my-prod-cluster
+```
+
+In named format, the `default` key is loaded on profile switch. In unnamed format, the first line is the default. The selected context persists across profile reloads.
+
+To switch between contexts within the current profile:
+
+```sh
+scs -e k8s_context           # List available contexts
+scs -e k8s_context prod      # Switch to a context (by key or name)
+```
+
+Context names must match existing entries in your kubeconfig. List them with `kubectl config get-contexts`.
 
 ### git
 
@@ -178,14 +207,24 @@ my_ext_on_show() {
 my_ext_on_help() {
   echo "Description and usage for my_ext."
 }
+
+# Optional: called by `scs -e my_ext [args...]`
+# Only needed if your extension supports direct commands (e.g. switching between sub-configurations).
+my_ext_on_command() {
+  # $@ contains any arguments passed after the extension name
+  # Handle listing, switching, etc.
+}
 ```
 
-The function names **must** be prefixed with the filename of the extension. SCS provides two environment variables to extensions:
+The function names **must** be prefixed with the filename of the extension. All functions except `_on_command` are required. `_on_command` is optional and enables the `scs -e` interface for extensions that support sub-configurations.
+
+SCS provides the following environment variables to extensions:
 
 | Variable | Description |
 |---|---|
 | `SCS_EXTENSION_CONFIG` | Absolute path to the profile's config file for this extension |
 | `SCS_STATE_DIR` | Directory for persisting state across profile switches (e.g. `extensions/state/`) |
+| `SCS_PROFILE` | The current profile identifier |
 
 To disable an extension without removing it, append `.disabled` to its filename.
 
