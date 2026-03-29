@@ -30,15 +30,16 @@ configure() {
   local init="$4"
   local profile_dir="${PROFILES_DIR}/$profile"
 
+  local extension_name
+  local profile_config
   setopt local_options nullglob 2>/dev/null || shopt -s nullglob
   for extension_file in "$EXTENSIONS_DIR"/bundled/* "$EXTENSIONS_DIR"/custom/*; do
       [ -f "$extension_file" ] || continue
       [[ "$extension_file" == *.disabled ]] && continue
 
-      local extension_name
       extension_name="$(basename "$extension_file")"
 
-      local profile_config="$profile_dir/$extension_name"
+      profile_config="$profile_dir/$extension_name"
       [ -f "$profile_config" ] || continue
 
       export SCS_EXTENSION_CONFIG="$profile_config"
@@ -48,19 +49,25 @@ configure() {
       case "$action" in
         set)
           if [[ -z "$init" ]]; then
+            echo
             echo "Configuring $extension_name for profile: $profile_name"
+            echo
           fi
           "${extension_name}_on_up"
           ;;
         unset)
           if [[ -z "$init" ]]; then
+            echo
             echo "Reverting $extension_name configuration for profile: $profile_name"
+            echo
           fi
           "${extension_name}_on_down"
           ;;
         show)
           if [[ -z "$init" ]]; then
+            echo
             echo "Current $extension_name configuration for profile: $profile_name"
+            echo
           fi
           "${extension_name}_on_show"
       esac
@@ -110,9 +117,7 @@ get_help() {
 }
 
 get_context() {
-  if [[ -n "$current_context" ]]; then
-    current_profile_config=$(configure $current_context 'show')
-  else
+  if [[ -z "$current_context" ]]; then
     echo "No profile has been set! Please switch to a new profile to retrieve profile settings."
     echo "You can do so via 'scs -s <profile>'"
     return 1
@@ -124,7 +129,7 @@ get_context() {
   fi
   echo "Current profile: $profile_name"
   echo "$profile_name configuration:"
-  echo "$current_profile_config"
+  configure "$current_context" 'show' "$profile_name"
   return 0
 }
 
