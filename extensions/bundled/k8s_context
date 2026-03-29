@@ -1,6 +1,6 @@
 k8s_context_on_up() {
   local context=$(<$SCS_EXTENSION_CONFIG)
-  kubectl config use-context "$context"
+  kubectl config use-context "$context" > /dev/null
   return 0
 }
 

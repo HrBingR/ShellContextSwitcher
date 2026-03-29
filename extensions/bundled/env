@@ -15,7 +15,6 @@ env_on_down() {
 }
 
 env_on_show() {
-  echo "Env - Bundled Extension:"
   local env_file="$SCS_EXTENSION_CONFIG"
   local -a found_env=()
   local env_name

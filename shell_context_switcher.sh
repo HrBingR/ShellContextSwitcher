@@ -49,23 +49,18 @@ configure() {
       case "$action" in
         set)
           if [[ -z "$init" ]]; then
-            echo
             echo "Configuring $extension_name for profile: $profile_name"
-            echo
           fi
           "${extension_name}_on_up"
           ;;
         unset)
           if [[ -z "$init" ]]; then
-            echo
             echo "Reverting $extension_name configuration for profile: $profile_name"
-            echo
           fi
           "${extension_name}_on_down"
           ;;
         show)
           if [[ -z "$init" ]]; then
-            echo
             echo "Current $extension_name configuration for profile: $profile_name"
             echo
           fi
@@ -160,14 +155,15 @@ set_context() {
   if [[ -n "$current_context" ]]; then
     if [[ -z "$init" ]]; then
       echo "Disabling profile: $profile_name"
-      configure "$current_context" 'unset' "$profile_name"
       echo
+      configure "$current_context" 'unset' "$profile_name"
     else
       configure "$current_context" 'unset' "$profile_name" 'init'
     fi
   fi
   if [[ -z "$init" ]]; then
     echo "Enabling profile: $profile_name"
+    echo
     configure "$profile" 'set' "$profile_name"
     echo
   else
@@ -177,6 +173,7 @@ set_context() {
   current_context="$profile"
   if [[ -z "$init" ]]; then
     echo "Profile $profile_name enabled!"
+    echo "------------------"
     get_context
   fi
   return 0

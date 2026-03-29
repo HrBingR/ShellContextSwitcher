@@ -18,7 +18,8 @@ alias_on_show() {
   local alias_file="$SCS_EXTENSION_CONFIG"
   local -a found_aliases=()
   local alias_name
-  while IFS='=' read -r alias_name _; do
+  local current_alias
+  while IFS='=' read -r alias_name _ || [[ -n "$alias_name" ]]; do
     if current_alias=$(alias "$alias_name" 2>/dev/null); then
       found_aliases+=("$current_alias")
     fi
