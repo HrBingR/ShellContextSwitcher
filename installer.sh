@@ -64,7 +64,7 @@ rc_teardown() {
     fi
   fi
 
-  if grep -q "source $HOME/.local/bin/shell_context_switcher.sh --init" "$shellrc"; then
+  if grep -q 'source $HOME/.local/bin/shell_context_switcher.sh --init' "$shellrc"; then
     sed -i.bak '/source.*shell_context_switcher.sh --init/d' "$shellrc"
     if [[ -z "$reinstall" ]]; then
       echo "Removed source line from ${shellrc}."
@@ -162,8 +162,8 @@ step_one() {
     shellrc="$HOME/.bashrc"
   fi
   rc_setup "$shellrc"
-  echo "Copying installer..."
-  cp "$0" "${CONFIG_DIR}/installer.sh"
+  echo "Downloading installer..."
+  download_installer
   echo "Downloading extensions..."
   download_extension "git"
   download_extension "alias"
@@ -216,6 +216,16 @@ download_scs() {
   if ! curl -fsSL "$url" -o "$dest"; then
     echo "Failed to download shell_context_switcher.sh" >&2
     echo "Please follow the manual installation process"
+    return 1
+  fi
+}
+
+download_installer() {
+  local url="https://raw.githubusercontent.com/HrBingR/ShellContextSwitcher/main/installer.sh"
+  local dest="${CONFIG_DIR}/installer.sh"
+  if ! curl -fsSL "$url" -o "$dest"; then
+    echo "Failed to download installer.sh" >&2
+    echo "Please download it manually from $url and place it in $dest"
     return 1
   fi
 }
