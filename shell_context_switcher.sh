@@ -12,13 +12,15 @@ EXTENSIONS_DIR="${CONFIG_DIR}/extensions"
 STATE_DIR="${EXTENSIONS_DIR}/state"
 PROFILES_DIR="${CONFIG_DIR}/profiles"
 
-if [ -n "$ZSH_VERSION" ]; then
-  readonly current_shell="zsh"
-elif [ -n "$BASH_VERSION" ]; then
-  readonly current_shell="bash"
-else
-  echo "Unsupported shell"
-  return 1
+if [[ -z "${current_shell+x}" ]]; then
+  if [ -n "$ZSH_VERSION" ]; then
+    readonly current_shell="zsh"
+  elif [ -n "$BASH_VERSION" ]; then
+    readonly current_shell="bash"
+  else
+    echo "Unsupported shell"
+    return 1
+  fi
 fi
 
 configure() {
