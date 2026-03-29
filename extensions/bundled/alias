@@ -1,6 +1,6 @@
 alias_on_up() {
   local alias_file="$SCS_EXTENSION_CONFIG"
-    while read -r alias_arg; do
+    while read -r alias_arg || [[ -n "$alias_arg" ]]; do
     alias "$alias_arg"
   done < "$alias_file"
   return 0
@@ -8,7 +8,7 @@ alias_on_up() {
 
 alias_on_down() {
   local alias_file="$SCS_EXTENSION_CONFIG"
-    while read -r alias_arg; do
+    while read -r alias_arg || [[ -n "$alias_arg" ]]; do
     unalias "${alias_arg%%=*}"
   done < "$alias_file"
   return 0

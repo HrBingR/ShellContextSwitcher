@@ -119,11 +119,14 @@ Exports and unsets environment variables when switching profiles.
 **Config file:** `profiles/<profile>/env`
 
 ```
-AWS_PROFILE='my-profile'
-VAULT_ADDR='https://vault.example.com:8200'
+AWS_PROFILE=my-profile
+VAULT_ADDR=https://vault.example.com:8200
+VAULT_TOKEN=<~/tokens/my_token
 ```
 
-Each line follows standard `KEY='value'` syntax.
+**Do not** wrap values in quotes. Values are read literally, which means special characters like `$`, `@`, and spaces are preserved as-is without shell expansion. Quoting values will embed the literal quote characters into the variable.
+
+To read a value from a file, prefix the path with `<`. Tilde (`~`) is expanded to the user's home directory. If the file is not found, a warning is printed and the variable is skipped.
 
 ### k8s_context
 
