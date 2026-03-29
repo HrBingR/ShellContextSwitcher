@@ -4,14 +4,11 @@ EXTENSIONS_DIR="${CONFIG_DIR}/extensions"
 PROFILES_DIR="${CONFIG_DIR}/profiles"
 INSTALL_DIR="$HOME/.local/bin"
 
-if [ -n "$ZSH_VERSION" ]; then
-  readonly current_shell="zsh"
-elif [ -n "$BASH_VERSION" ]; then
-  readonly current_shell="bash"
-else
-  echo "Unsupported shell"
-  exit 1
-fi
+case "$(basename "$SHELL")" in
+  zsh)  readonly current_shell="zsh" ;;
+  bash) readonly current_shell="bash" ;;
+  *)    echo "Unsupported shell"; exit 1 ;;
+esac
 
 install() {
   echo "Welcome to the shell-context-switcher (SCS) installer."
