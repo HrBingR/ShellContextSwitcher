@@ -48,20 +48,13 @@ configure() {
 
       case "$action" in
         set)
-          if [[ -z "$init" ]]; then
-            echo "Configuring $extension_name for profile: $profile_name"
-          fi
           "${extension_name}_on_up"
           ;;
         unset)
-          if [[ -z "$init" ]]; then
-            echo "Reverting $extension_name configuration for profile: $profile_name"
-          fi
           "${extension_name}_on_down"
           ;;
         show)
           if [[ -z "$init" ]]; then
-            echo "Current $extension_name configuration for profile: $profile_name"
             echo
           fi
           "${extension_name}_on_show"

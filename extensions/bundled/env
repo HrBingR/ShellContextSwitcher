@@ -30,7 +30,9 @@ env_on_show() {
     echo "No configured environment variables found in the current environment. Please reload the current profile."
   else
     echo "Current environment variables for selected profile:"
+    echo
     printf '%s\n' "${found_env[@]}"
+    echo
   fi
   return 0
 }

@@ -28,7 +28,9 @@ alias_on_show() {
     echo "No configured aliases found in the current environment. Please reload current profile."
   else
     echo "Current aliases for selected profile:"
+    echo
     printf '%s\n' "${found_aliases[@]}"
+    echo
   fi
 }
 

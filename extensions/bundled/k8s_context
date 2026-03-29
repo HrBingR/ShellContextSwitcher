@@ -24,10 +24,12 @@ k8s_context_on_show() {
     echo "  Context Name: ${current_context}"
     echo "  Cluster Name: ${cluster:-<unset>}"
     echo "  User Name: ${user:-<unset>}"
+    echo
   else
     echo "Current Kubernetes context does not match the configured context. Please reload the current profile."
     echo "Configured context: ${configured_context:-<unset>}"
     echo "Current context: ${current_context:-<unset>}"
+    echo
   fi
 }
 

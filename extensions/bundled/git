@@ -87,16 +87,20 @@ git_on_show() {
 
   if [[ "$current_name" == "$configured_name" && "$current_email" == "$configured_email" ]]; then
     echo "Current global git config:"
+    echo
     echo "  user.name:  ${current_name:-<unset>}"
     echo "  user.email: ${current_email:-<unset>}"
+    echo
   else
     echo "Current global git config does not match the configured profile. Please reload the current profile."
+    echo
     echo "Current:"
     echo "  user.name:  ${current_name:-<unset>}"
     echo "  user.email: ${current_email:-<unset>}"
     echo "Configured:"
     echo "  user.name:  ${configured_name:-<unset>}"
     echo "  user.email: ${configured_email:-<unset>}"
+    echo
   fi
 }
 
