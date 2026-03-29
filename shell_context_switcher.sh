@@ -54,9 +54,6 @@ configure() {
           "${extension_name}_on_down"
           ;;
         show)
-          if [[ -z "$init" ]]; then
-            echo
-          fi
           "${extension_name}_on_show"
       esac
   done
